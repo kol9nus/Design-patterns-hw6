@@ -22,7 +22,9 @@ namespace Example_06.ChainOfResponsibility
 
         public Bancomat()
         {
-            _handler = new TenRubleHandler(null);
+            _handler = new DefaultHandler();
+            _handler = new RubleHandler(_handler);
+            _handler = new TenRubleHandler(_handler);
             _handler = new TenDollarHandler(_handler);
             _handler = new FiftyDollarHandler(_handler);
             _handler = new HundredDollarHandler(_handler);
@@ -35,7 +37,8 @@ namespace Example_06.ChainOfResponsibility
 
         public bool CashOut(string sum)
         {
-            return _handler.CashOut(sum);
+            Console.Write(sum + " = ");
+            return _handler.CashOut(sum, 0);
         }
     }
 
@@ -53,13 +56,35 @@ namespace Example_06.ChainOfResponsibility
             return _nextHandler != null && _nextHandler.Validate(banknote);
         }
 
-        public virtual bool CashOut(string sum)
+        public virtual bool CashOut(string sum, int deepth)
         {
-            return _nextHandler != null && _nextHandler.CashOut(sum);
+            return _nextHandler != null && _nextHandler.CashOut(sum, 0);
+        }
+    }
+
+    public class DefaultHandler : BanknoteHandler
+    {
+        public DefaultHandler() : base(null)
+        {
         }
 
-        protected abstract int Value { get; }
-        protected abstract string Currency { get; }
+        public override bool Validate(string banknote)
+        {
+            return false;
+        }
+
+        public override bool CashOut(string sum, int deepth)
+        {
+            if (sum.IndexOf("0") == 0)
+            {
+                Console.Write("\b\b\b.  \n");
+                return true;
+            } else
+            {
+                Console.Write("\b\bневалидная сумма =(.\n");
+                return false;
+            }
+        }
     }
 
     public abstract class CurrencyHandlerBase : BanknoteHandler
@@ -73,29 +98,44 @@ namespace Example_06.ChainOfResponsibility
             return base.Validate(banknote);
         }
 
-        public override bool CashOut(string sum)
+        public override bool CashOut(string sum, int deepth)
         {
             if (sum.Contains(Currency))
             {
                 int x = int.Parse(sum.Substring(0, sum.IndexOf(Currency)));
                 if (x >= Value)
                 {
-                    Console.Write($"+ {Value}");
-                    return this.CashOut($"{x - Value}{Currency}");
+                    return this.CashOut($"{x - Value}{Currency}", deepth + 1);
+                } else
+                {
+                    if (deepth != 0)
+                        Console.Write($"{Value}*{deepth} + ");
                 }
             }
-            return base.CashOut(sum);
+            return base.CashOut(sum, 0);
         }
+
+        protected abstract int Value { get; }
+        protected abstract string Currency { get; }
 
         protected CurrencyHandlerBase(BanknoteHandler nextHandler) : base(nextHandler)
         {
         }
     }
 
-    public abstract class RubleHandlerBase : BanknoteHandler
+    public abstract class RubleHandlerBase : CurrencyHandlerBase
     {
         protected override string Currency => " рублей";
         protected RubleHandlerBase(BanknoteHandler nextHandler) : base(nextHandler)
+        {
+        }
+    }
+
+    public abstract class DollarHandlerBase : CurrencyHandlerBase
+    {
+        protected override string Currency => "$";
+
+        protected DollarHandlerBase(BanknoteHandler nextHandler) : base(nextHandler)
         {
         }
     }
@@ -108,13 +148,12 @@ namespace Example_06.ChainOfResponsibility
         { }
     }
 
-    public abstract class DollarHandlerBase : BanknoteHandler
+    public class RubleHandler : RubleHandlerBase
     {
-        protected override string Currency => "$";
+        protected override int Value => 1;
 
-        protected DollarHandlerBase(BanknoteHandler nextHandler) : base(nextHandler)
-        {
-        }
+        public RubleHandler(BanknoteHandler nextHandler) : base(nextHandler)
+        { }
     }
 
     public class HundredDollarHandler : DollarHandlerBase

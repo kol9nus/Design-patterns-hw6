@@ -9,7 +9,10 @@ namespace Example_06
         {
             Bancomat bancomat = new Bancomat();
             bancomat.Validate("10 рублей");
-            bancomat.CashOut("100000 рублей");
+            bancomat.CashOut("9032 рублей");
+            bancomat.CashOut("90 рублей");
+            bancomat.CashOut("9032$");
+            bancomat.CashOut("9070$");
 
             Console.ReadKey();
         }
